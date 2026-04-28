@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold">總覽儀表板 <span class="text-muted fs-5 ms-2">{{ month_year }}</span></h2>
+    <div>
+        <a href="{{ url_for('records.index') }}" class="btn btn-primary hover-lift"><i class="bi bi-plus-lg me-1"></i> 新增明細</a>
+        <a href="{{ url_for('dashboard.export_csv') }}" class="btn btn-outline-secondary hover-lift ms-2"><i class="bi bi-download me-1"></i> 匯出CSV</a>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-4 mb-5">
+    <div class="col-md-4">
+        <div class="card h-100 hover-lift border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h6 class="text-muted fw-semibold mb-3">本月總支出</h6>
+                <h3 class="fw-bold text-expense">$ {{ "%.2f"|format(total_expense) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 hover-lift border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h6 class="text-muted fw-semibold mb-3">本月總收入</h6>
+                <h3 class="fw-bold text-income">$ {{ "%.2f"|format(total_income) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 hover-lift border-0 shadow-sm">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="text-muted fw-semibold mb-0">預算使用率</h6>
+                    <a href="{{ url_for('dashboard.budget') }}" class="text-decoration-none small"><i class="bi bi-pencil me-1"></i>設定</a>
+                </div>
+                <div class="d-flex align-items-end mb-2">
+                    <h3 class="fw-bold mb-0 me-2">{{ "%.1f"|format(budget_usage) }}%</h3>
+                    <span class="text-muted small mb-1">/ $ {{ "%.0f"|format(budget_amount) }}</span>
+                </div>
+                <div class="progress" style="height: 8px;">
+                    <div class="progress-bar {% if budget_usage > 90 %}bg-danger{% elif budget_usage > 75 %}bg-warning{% else %}bg-primary{% endif %}" role="progressbar" style="width: {{ [budget_usage, 100]|min }}%;" aria-valuenow="{{ budget_usage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-transparent py-3">
+        <h5 class="mb-0 fw-semibold">最近明細</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark text-muted">
+                    <tr>
+                        <th class="ps-4">日期</th>
+                        <th>分類</th>
+                        <th>備註</th>
+                        <th class="text-end pe-4">金額</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records[:5] %}
+                    <tr>
+                        <td class="ps-4 text-muted">{{ record.date }}</td>
+                        <td>
+                            <span class="badge {% if record.category_type == 'expense' %}bg-danger-subtle text-danger{% else %}bg-success-subtle text-success{% endif %}">
+                                {{ record.category_name }}
+                            </span>
+                        </td>
+                        <td>{{ record.note or '-' }}</td>
+                        <td class="text-end pe-4 fw-semibold {% if record.category_type == 'expense' %}text-expense{% else %}text-income{% endif %}">
+                            {% if record.category_type == 'expense' %}-{% else %}+{% endif %} $ {{ "%.2f"|format(record.amount) }}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>
+                            這個月還沒有任何紀錄喔！<br>
+                            <a href="{{ url_for('records.index') }}" class="btn btn-sm btn-primary mt-3">去新增一筆</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if records|length > 5 %}
+    <div class="card-footer bg-transparent text-center py-3">
+        <a href="{{ url_for('records.index') }}" class="text-decoration-none">查看完整清單 <i class="bi bi-arrow-right"></i></a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

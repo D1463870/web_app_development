@@ -1,48 +1,96 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from app.models.record import Record
+from app.models.category import Category
+from datetime import datetime
 
 records_bp = Blueprint('records', __name__, url_prefix='/records')
 
 @records_bp.route('/', methods=['GET'])
 def index():
-    """
-    取得收支紀錄清單：
-    - 支援依據月份或條件篩選
-    - 渲染 records/index.html
-    """
-    pass
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+        
+    user_id = session['user_id']
+    month_year = request.args.get('month', datetime.now().strftime('%Y-%m'))
+    
+    records = Record.get_by_month(user_id, month_year)
+    categories = Category.get_all_by_user(user_id)
+    
+    return render_template('records/index.html', records=records, categories=categories, current_month=month_year)
 
 @records_bp.route('/', methods=['POST'])
 def create():
-    """
-    接收新增收支的表單：
-    - 驗證必填並呼叫 Record.create()
-    - 成功後重導向回列表或首頁
-    """
-    pass
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+        
+    user_id = session['user_id']
+    category_id = request.form.get('category_id')
+    amount = request.form.get('amount')
+    date = request.form.get('date')
+    note = request.form.get('note')
+    
+    if not category_id or not amount or not date:
+        flash('分類、金額與日期為必填', 'danger')
+        return redirect(url_for('records.index'))
+        
+    Record.create({
+        'user_id': user_id,
+        'category_id': category_id,
+        'amount': float(amount),
+        'date': date,
+        'note': note
+    })
+    flash('新增紀錄成功', 'success')
+    return redirect(url_for('records.index'))
 
 @records_bp.route('/<int:id>/edit', methods=['GET'])
 def edit(id):
-    """
-    顯示單筆紀錄的編輯表單：
-    - 取得該筆資料，若不屬於該用戶則報錯
-    - 渲染 records/edit.html
-    """
-    pass
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+        
+    user_id = session['user_id']
+    record = Record.get_by_id(id)
+    
+    if not record or record['user_id'] != user_id:
+        flash('找不到該紀錄或無權限編輯', 'danger')
+        return redirect(url_for('records.index'))
+        
+    categories = Category.get_all_by_user(user_id)
+    return render_template('records/edit.html', record=record, categories=categories)
 
 @records_bp.route('/<int:id>/update', methods=['POST'])
 def update(id):
-    """
-    處理單筆紀錄更新：
-    - 接收表單更新欄位
-    - 重導向回列表
-    """
-    pass
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+        
+    user_id = session['user_id']
+    record = Record.get_by_id(id)
+    
+    if not record or record['user_id'] != user_id:
+        flash('無權限編輯此紀錄', 'danger')
+        return redirect(url_for('records.index'))
+        
+    Record.update(id, {
+        'category_id': request.form.get('category_id'),
+        'amount': float(request.form.get('amount')),
+        'date': request.form.get('date'),
+        'note': request.form.get('note')
+    })
+    flash('更新成功', 'success')
+    return redirect(url_for('records.index'))
 
 @records_bp.route('/<int:id>/delete', methods=['POST'])
 def delete(id):
-    """
-    刪除單筆紀錄：
-    - 呼叫 Record.delete()
-    - 重導向回列表
-    """
-    pass
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+        
+    user_id = session['user_id']
+    record = Record.get_by_id(id)
+    
+    if not record or record['user_id'] != user_id:
+        flash('無權限刪除此紀錄', 'danger')
+    else:
+        Record.delete(id)
+        flash('刪除成功', 'success')
+        
+    return redirect(url_for('records.index'))

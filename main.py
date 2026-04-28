@@ -29,7 +29,7 @@ def init_db():
     """Initializes the database using schema.sql"""
     import sqlite3
     os.makedirs('instance', exist_ok=True) # Usually sqlite db is placed in instance or root
-    conn = sqlite3.connect('app.db')
+    conn = sqlite3.connect('instance/database.db')
     try:
         with open('database/schema.sql', 'r', encoding='utf-8') as f:
             conn.executescript(f.read())
